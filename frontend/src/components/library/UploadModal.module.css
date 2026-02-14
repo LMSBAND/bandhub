@@ -1,0 +1,88 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  width: 90%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+}
+
+.title {
+  font-size: 20px;
+  margin-bottom: var(--space-lg);
+}
+
+.dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dropzone:hover,
+.dropzoneActive {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
+}
+
+.dropText {
+  font-size: 16px;
+  margin-bottom: var(--space-sm);
+}
+
+.dropHint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.fileInput {
+  display: none;
+}
+
+.progressContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg) 0;
+}
+
+.progressBar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-surface-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 4px;
+  transition: width 200ms ease;
+}
+
+.progressText {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  width: 40px;
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}

@@ -1,0 +1,78 @@
+.player {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.waveform {
+  padding: var(--space-md);
+  cursor: crosshair;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface-elevated);
+  border-top: 1px solid var(--color-border);
+}
+
+.controlsLeft {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.controlBtn {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  transition: all var(--transition-fast);
+}
+
+.controlBtn:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-dim);
+}
+
+.playBtn {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: white;
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.playBtn:hover {
+  background: var(--color-accent-hover);
+}
+
+.time {
+  font-size: 14px;
+  font-family: monospace;
+  color: var(--color-text-secondary);
+}
+
+.controlsRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.speed {
+  font-size: 13px;
+  font-family: monospace;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}

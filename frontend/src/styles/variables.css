@@ -1,0 +1,53 @@
+:root {
+  /* Base colors - dark theme adapted from FlightRecordingAnalyzer */
+  --color-bg: #0f0f1a;
+  --color-surface: #1a1a2e;
+  --color-surface-elevated: #252540;
+  --color-surface-hover: #2a2a4a;
+  --color-border: #333355;
+  --color-border-hover: #4a4a7a;
+
+  /* Text */
+  --color-text: #e0e0e0;
+  --color-text-secondary: #9090b0;
+  --color-text-muted: #606080;
+
+  /* Accent */
+  --color-accent: #6c63ff;
+  --color-accent-hover: #7d75ff;
+  --color-accent-dim: rgba(108, 99, 255, 0.15);
+
+  /* Semantic */
+  --color-success: #2a8a4a;
+  --color-error: #ff4444;
+  --color-warning: #ff9944;
+  --color-info: #4488ff;
+
+  /* Comment marker colors */
+  --color-comment-marker: rgba(108, 99, 255, 0.4);
+  --color-comment-resolved: rgba(42, 138, 74, 0.3);
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* Sidebar */
+  --sidebar-width: 260px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}

@@ -1,0 +1,62 @@
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.filters {
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.filterBtn {
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.filterBtn:hover {
+  color: var(--color-text);
+}
+
+.filterBtn.active {
+  background: var(--color-accent);
+  color: white;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.searchInput {
+  width: 220px;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 13px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+
+.empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: var(--space-xl) 0;
+}

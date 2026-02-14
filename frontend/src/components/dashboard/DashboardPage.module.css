@@ -1,0 +1,8 @@
+.dashboard {
+  max-width: 800px;
+}
+
+.placeholder {
+  color: var(--color-text-secondary);
+  margin-top: var(--space-md);
+}
