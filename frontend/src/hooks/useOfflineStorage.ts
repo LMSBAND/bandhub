@@ -1,9 +1,49 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useSyncExternalStore } from "react";
 
 const DB_NAME = "lms-offline";
 const META_STORE = "saved-media";
 const BLOB_STORE = "media-blobs";
 const DB_VERSION = 2;
+
+// ── Shared state across all hook instances ──
+let _savedIds: Set<string> = new Set();
+let _loaded = false;
+const _listeners = new Set<() => void>();
+
+function _notify() {
+  _listeners.forEach((fn) => fn());
+}
+
+function _subscribe(listener: () => void) {
+  _listeners.add(listener);
+  return () => { _listeners.delete(listener); };
+}
+
+function _getSnapshot(): Set<string> {
+  return _savedIds;
+}
+
+function _addSavedId(mediaId: string) {
+  _savedIds = new Set([..._savedIds, mediaId]);
+  _notify();
+}
+
+function _removeSavedId(mediaId: string) {
+  _savedIds = new Set([..._savedIds].filter((id) => id !== mediaId));
+  _notify();
+}
+
+// Load from IndexedDB once at module level
+function _ensureLoaded() {
+  if (_loaded) return;
+  _loaded = true;
+  getAllSaved()
+    .then((items) => {
+      _savedIds = new Set(items.map((m) => m.mediaId));
+      _notify();
+    })
+    .catch((err) => console.warn("Failed to load offline saved items:", err));
+}
 
 interface OfflineMeta {
   mediaId: string;
@@ -126,9 +166,12 @@ function loadOfflineTypes(): Set<string> {
   try { return new Set(JSON.parse(raw)); } catch { return new Set(ALL_MEDIA_TYPES); }
 }
 
-/** Hook: manage offline storage for the current view */
+/** Hook: manage offline storage for the current view.
+ *  savedIds is shared across ALL hook instances via module-level state. */
 export function useOfflineStorage() {
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  _ensureLoaded();
+
+  const savedIds = useSyncExternalStore(_subscribe, _getSnapshot);
   const [saving, setSaving] = useState<string | null>(null);
   const [autoOffline, setAutoOfflineState] = useState<boolean>(
     () => localStorage.getItem(AUTO_OFFLINE_KEY) === "1"
@@ -148,21 +191,6 @@ export function useOfflineStorage() {
       localStorage.setItem(AUTO_OFFLINE_TYPES_KEY, JSON.stringify([...next]));
       return next;
     });
-  }, []);
-
-  // Load all saved media IDs from IndexedDB on mount
-  useEffect(() => {
-    let cancelled = false;
-    getAllSaved()
-      .then((items) => {
-        if (!cancelled) {
-          setSavedIds(new Set(items.map((m) => m.mediaId)));
-        }
-      })
-      .catch((err) => {
-        console.warn("Failed to load offline saved items:", err);
-      });
-    return () => { cancelled = true; };
   }, []);
 
   const isSaved = useCallback(
@@ -197,7 +225,7 @@ export function useOfflineStorage() {
           savedAt: Date.now(),
         });
 
-        setSavedIds((prev) => new Set([...prev, mediaId]));
+        _addSavedId(mediaId);
       } finally {
         setSaving(null);
       }
@@ -208,11 +236,7 @@ export function useOfflineStorage() {
   const removeOffline = useCallback(async (mediaId: string) => {
     await deleteBlob(mediaId);
     await deleteMeta(mediaId);
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(mediaId);
-      return next;
-    });
+    _removeSavedId(mediaId);
   }, []);
 
   return { isSaved, saveOffline, removeOffline, saving, savedIds, autoOffline, setAutoOffline, autoOfflineTypes, toggleOfflineType };

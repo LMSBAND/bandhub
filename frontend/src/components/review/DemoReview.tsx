@@ -16,7 +16,7 @@ import {
 import { db, DEMO_MODE } from "../../firebase";
 import { useAuth } from "../../hooks/useAuth";
 import { useBand } from "../../hooks/useBand";
-import { useOfflineStorage, getOfflineUrl, isMediaOffline } from "../../hooks/useOfflineStorage";
+import { useOfflineStorage, getOfflineUrl } from "../../hooks/useOfflineStorage";
 import { getMediaBlob, getPublicMediaBlob, getDirectDriveUrl } from "../../utils/storage";
 import { WaveformPlayer, type CommentMarkerData } from "./WaveformPlayer";
 import { CommentPanel } from "./CommentPanel";
@@ -125,18 +125,6 @@ export function DemoReview() {
         }
         if (blob) {
           setMediaUrl(URL.createObjectURL(blob));
-          // Auto-save for offline if enabled
-          const autoOn = localStorage.getItem("lms-auto-offline") === "1";
-          const typesRaw = localStorage.getItem("lms-auto-offline-types");
-          const allowedTypes = typesRaw ? new Set(JSON.parse(typesRaw)) : new Set(["audio", "video", "image", "pdf", "other"]);
-          if (autoOn && allowedTypes.has(data.type) && !(await isMediaOffline(mediaId))) {
-            saveOffline(mediaId, blob, {
-              bandId: bandId!,
-              name: data.name,
-              type: data.type,
-              size: blob.size,
-            }).catch(console.warn);
-          }
         } else {
           setMediaUrl(getDirectDriveUrl(data.driveFileId));
         }
