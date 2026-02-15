@@ -18,6 +18,10 @@ export function LoginPage({ onGoogleSignIn }: LoginPageProps) {
         >
           Sign in with Google
         </button>
+        <p className={styles.driveNote}>
+          This will connect directly to your Google Drive. We don't store any data.
+          It's safe as far as Google goes. Break a leg. - LMS
+        </p>
       </div>
     </div>
   );

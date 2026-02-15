@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Band } from "../../hooks/useBand";
+import { useOfflineStorage } from "../../hooks/useOfflineStorage";
 import styles from "./Sidebar.module.css";
 
 interface SidebarProps {
@@ -17,9 +18,9 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { path: "/library", label: "Library", icon: "folder" },
-  { path: "/calendar", label: "Calendar", icon: "calendar" },
-  { path: "/chat", label: "Chat", icon: "chat" },
+  { path: "/library", label: "art", icon: "folder" },
+  { path: "/calendar", label: "dates", icon: "calendar" },
+  { path: "/chat", label: "bullshit", icon: "chat" },
 ];
 
 const ICONS: Record<string, string> = {
@@ -43,6 +44,7 @@ export function Sidebar({
   const [copied, setCopied] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { autoOffline, setAutoOffline, autoOfflineTypes, toggleOfflineType } = useOfflineStorage();
 
   const copyInviteCode = () => {
     if (!activeBand?.inviteCode) return;
@@ -114,6 +116,32 @@ export function Sidebar({
           </button>
         ))}
       </nav>
+
+      {/* Auto-offline toggle */}
+      <div className={styles.offlineSection}>
+        <label className={styles.autoOfflineToggle}>
+          <input
+            type="checkbox"
+            checked={autoOffline}
+            onChange={(e) => setAutoOffline(e.target.checked)}
+          />
+          <span className={styles.toggleSwitch} />
+          <span className={styles.toggleLabel}>auto-offline</span>
+        </label>
+        {autoOffline && (
+          <div className={styles.typeFilters}>
+            {["audio", "video", "image", "pdf", "other"].map((t) => (
+              <button
+                key={t}
+                className={`${styles.typeChip} ${autoOfflineTypes.has(t) ? styles.typeChipOn : ""}`}
+                onClick={() => toggleOfflineType(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Band members */}
       {activeBand && (() => {

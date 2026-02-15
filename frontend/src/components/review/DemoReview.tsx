@@ -16,8 +16,8 @@ import {
 import { db, DEMO_MODE } from "../../firebase";
 import { useAuth } from "../../hooks/useAuth";
 import { useBand } from "../../hooks/useBand";
-import { useOfflineStorage, getOfflineUrl } from "../../hooks/useOfflineStorage";
-import { getMediaUrl } from "../../utils/storage";
+import { useOfflineStorage, getOfflineUrl, isMediaOffline } from "../../hooks/useOfflineStorage";
+import { getMediaBlob, getPublicMediaBlob, getDirectDriveUrl } from "../../utils/storage";
 import { WaveformPlayer, type CommentMarkerData } from "./WaveformPlayer";
 import { CommentPanel } from "./CommentPanel";
 import { AddCommentModal } from "./AddCommentModal";
@@ -41,8 +41,9 @@ interface MediaDoc {
   mimeType?: string;
   duration?: number;
   peaks?: number[];
-  gcsPath: string;
-  downloadUrl?: string;
+  driveFileId?: string;
+  gcsPath?: string;       // migration fallback for old uploads
+  downloadUrl?: string;   // migration fallback for old uploads
   lyrics?: string;
   uploadedBy?: string;
   songInfo?: SongInfo;
@@ -55,7 +56,7 @@ interface CommentDoc extends CommentMarkerData {
 export function DemoReview() {
   const { mediaId } = useParams<{ mediaId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, googleAccessToken } = useAuth();
   const { activeBand } = useBand(user?.uid);
 
   const [media, setMedia] = useState<MediaDoc | null>(null);
@@ -103,17 +104,54 @@ export function DemoReview() {
       const offlineUrl = await getOfflineUrl(mediaId);
       if (offlineUrl) {
         setMediaUrl(offlineUrl);
+      } else if (data.driveFileId) {
+        // Try cached OAuth token first, then API key, then direct URL
+        let blob: Blob | null = null;
+        const cachedToken = googleAccessToken ?? sessionStorage.getItem("google_access_token");
+        if (cachedToken) {
+          try {
+            blob = await getMediaBlob(cachedToken, data.driveFileId);
+          } catch {
+            // Token expired or invalid — fall through
+          }
+        }
+        if (!blob) {
+          try {
+            const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+            blob = await getPublicMediaBlob(apiKey, data.driveFileId);
+          } catch {
+            // API key failed — fall through to direct URL
+          }
+        }
+        if (blob) {
+          setMediaUrl(URL.createObjectURL(blob));
+          // Auto-save for offline if enabled
+          const autoOn = localStorage.getItem("lms-auto-offline") === "1";
+          const typesRaw = localStorage.getItem("lms-auto-offline-types");
+          const allowedTypes = typesRaw ? new Set(JSON.parse(typesRaw)) : new Set(["audio", "video", "image", "pdf", "other"]);
+          if (autoOn && allowedTypes.has(data.type) && !(await isMediaOffline(mediaId))) {
+            saveOffline(mediaId, blob, {
+              bandId: bandId!,
+              name: data.name,
+              type: data.type,
+              size: blob.size,
+            }).catch(console.warn);
+          }
+        } else {
+          setMediaUrl(getDirectDriveUrl(data.driveFileId));
+        }
       } else if (data.downloadUrl) {
+        // Migration fallback: old uploads stored in Firebase Storage
         setMediaUrl(data.downloadUrl);
-      } else {
-        const url = await getMediaUrl(data.gcsPath);
-        setMediaUrl(url);
       }
       setLoading(false);
     };
 
-    loadMedia();
-  }, [bandId, mediaId, navigate]);
+    loadMedia().catch((err) => {
+      console.error("Failed to load media:", err);
+      setLoading(false);
+    });
+  }, [bandId, mediaId, navigate, googleAccessToken, saveOffline]);
 
   // Real-time comments listener
   useEffect(() => {
@@ -273,7 +311,7 @@ export function DemoReview() {
             className="btn btn-secondary"
             onClick={() => navigate("/library")}
           >
-            Back to Library
+            Back to art
           </button>
           <h2 className={styles.title}>Demo Review (connect Firebase to use)</h2>
         </div>
@@ -297,7 +335,7 @@ export function DemoReview() {
           className="btn btn-secondary"
           onClick={() => navigate("/library")}
         >
-          Back to Library
+          Back to art
         </button>
         <h2 className={styles.title}>{media.name}</h2>
         <div className={styles.headerActions}>

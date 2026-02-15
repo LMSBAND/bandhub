@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
@@ -12,7 +12,8 @@ import { useCollection } from "../../hooks/useFirestore";
 import { useAuth } from "../../hooks/useAuth";
 import { useBand } from "../../hooks/useBand";
 import { useOfflineStorage } from "../../hooks/useOfflineStorage";
-import { uploadFile, computePeaks, getMediaType } from "../../utils/storage";
+import { uploadFile, ensureBandFolder, computePeaks, getMediaType, getMediaBlob, getPublicMediaBlob } from "../../utils/storage";
+import { DriveApiError } from "../../utils/driveApi";
 import { MediaCard } from "./MediaCard";
 import { UploadModal } from "./UploadModal";
 import styles from "./LibraryPage.module.css";
@@ -28,25 +29,79 @@ interface MediaItem {
   project?: string;
   uploadedBy: string;
   commentCount: number;
+  driveFileId?: string;
 }
 
 const TYPE_FILTERS = ["all", "audio", "video", "image", "pdf", "other"];
 
 export function LibraryPage() {
-  const { user } = useAuth();
+  const { user, googleAccessToken, refreshGoogleToken } = useAuth();
   const { activeBand } = useBand(user?.uid);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showUpload, setShowUpload] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const navigate = useNavigate();
-  const { isSaved } = useOfflineStorage();
+  const { isSaved, saveOffline } = useOfflineStorage();
+  const autoOfflineRunRef = useRef<Set<string>>(new Set());
 
   const { data: media, loading } = useCollection<MediaItem>({
     path: activeBand ? `bands/${activeBand.id}/media` : "",
     constraints: [orderBy("uploadedAt", "desc")],
     enabled: !!activeBand,
   });
+
+  // Bulk auto-offline: when library loads, download & cache matching files
+  // Reads settings from localStorage directly (toggle lives in Sidebar, separate hook instance)
+  useEffect(() => {
+    if (loading || media.length === 0 || !activeBand) return;
+
+    const autoOn = localStorage.getItem("lms-auto-offline") === "1";
+    if (!autoOn) return;
+
+    const typesRaw = localStorage.getItem("lms-auto-offline-types");
+    const allowedTypes: Set<string> = typesRaw
+      ? new Set(JSON.parse(typesRaw))
+      : new Set(["audio", "video", "image", "pdf", "other"]);
+
+    let cancelled = false;
+
+    (async () => {
+      const token = googleAccessToken ?? sessionStorage.getItem("google_access_token");
+      const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+
+      for (const item of media) {
+        if (cancelled) break;
+        if (!item.driveFileId) continue;
+        if (!allowedTypes.has(item.type)) continue;
+        if (autoOfflineRunRef.current.has(item.id)) continue;
+
+        autoOfflineRunRef.current.add(item.id);
+
+        let blob: Blob | null = null;
+        if (token) {
+          try { blob = await getMediaBlob(token, item.driveFileId); } catch { /* token expired */ }
+        }
+        if (!blob && apiKey) {
+          try { blob = await getPublicMediaBlob(apiKey, item.driveFileId); } catch { /* skip */ }
+        }
+        if (blob && !cancelled) {
+          try {
+            await saveOffline(item.id, blob, {
+              bandId: activeBand.id,
+              name: item.name,
+              type: item.type,
+              size: item.size || blob.size,
+            });
+          } catch (err) {
+            console.warn("Auto-offline save failed for", item.name, err);
+          }
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [media, loading, activeBand, googleAccessToken, saveOffline]);
 
   const filtered = media.filter((m) => {
     if (filter !== "all" && m.type !== filter) return false;
@@ -59,22 +114,45 @@ export function LibraryPage() {
     async (files: File[]) => {
       if (!activeBand || !user || !db) return;
 
+      // Get (or refresh) the Google OAuth access token for Drive API
+      let token = googleAccessToken;
+      if (!token) {
+        token = await refreshGoogleToken();
+      }
+
+      // Ensure BandHub/{BandName}/ folder exists in user's Drive
+      const folderId = await ensureBandFolder(token, activeBand.name);
+
       for (const file of files) {
         try {
           setUploadProgress(0);
 
-          // Create Firestore doc ref to get the ID
           const mediaRef = doc(collection(db, `bands/${activeBand.id}/media`));
-          const mediaId = mediaRef.id;
           const mediaType = getMediaType(file.type);
 
-          // Upload to Firebase Storage
-          const downloadUrl = await uploadFile(
-            activeBand.id,
-            mediaId,
-            file,
-            (pct) => setUploadProgress(pct * 0.8) // 80% for upload
-          );
+          // Upload to user's Google Drive
+          let driveFile;
+          try {
+            driveFile = await uploadFile(
+              token,
+              folderId,
+              file,
+              (pct) => setUploadProgress(pct * 0.8) // 80% for upload
+            );
+          } catch (err) {
+            // Token expired — refresh and retry
+            if (err instanceof DriveApiError && err.status === 401) {
+              token = await refreshGoogleToken();
+              driveFile = await uploadFile(
+                token,
+                folderId,
+                file,
+                (pct) => setUploadProgress(pct * 0.8)
+              );
+            } else {
+              throw err;
+            }
+          }
 
           // Compute peaks for audio files
           let peaks: number[] | undefined;
@@ -93,8 +171,7 @@ export function LibraryPage() {
             name: file.name,
             type: mediaType,
             mimeType: file.type,
-            gcsPath: `bands/${activeBand.id}/media/${mediaId}/${file.name}`,
-            downloadUrl,
+            driveFileId: driveFile.id,
             size: file.size,
             ...(duration !== undefined && { duration }),
             ...(peaks && { peaks }),
@@ -114,7 +191,7 @@ export function LibraryPage() {
       setUploadProgress(null);
       setShowUpload(false);
     },
-    [activeBand, user]
+    [activeBand, user, googleAccessToken, refreshGoogleToken]
   );
 
   const handleMediaClick = (item: MediaItem) => {

@@ -25,6 +25,9 @@ export interface CalendarEvent {
   description?: string;
   rsvp: Record<string, "going" | "maybe" | "not_going">;
   createdBy: string;
+  door?: number;
+  merch?: number;
+  expenses?: number;
 }
 
 export const EVENT_TYPE_COLORS: Record<string, string> = {
@@ -152,6 +155,16 @@ export function CalendarPage() {
     [activeBand, user]
   );
 
+  const handleUpdateMoney = useCallback(
+    async (eventId: string, field: "door" | "merch" | "expenses", value: number) => {
+      if (!activeBand || !db) return;
+      await updateDoc(doc(db, `bands/${activeBand.id}/events`, eventId), {
+        [field]: value || 0,
+      });
+    },
+    [activeBand]
+  );
+
   const closeModal = () => {
     setModalMode(null);
     setEditEvent(null);
@@ -163,6 +176,27 @@ export function CalendarPage() {
 
   // Upcoming events (from today forward)
   const upcoming = events.filter((e) => e.start >= today).slice(0, 5);
+
+  // Events with money data for the graph
+  const moneyEvents = events
+    .filter((e) => (e.door || 0) + (e.merch || 0) + (e.expenses || 0) > 0)
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+  const totalDoor = moneyEvents.reduce((s, e) => s + (e.door || 0), 0);
+  const totalMerch = moneyEvents.reduce((s, e) => s + (e.merch || 0), 0);
+  const totalExpenses = moneyEvents.reduce((s, e) => s + (e.expenses || 0), 0);
+  const totalNet = totalDoor + totalMerch - totalExpenses;
+
+  // Chart dimensions
+  const chartW = 600;
+  const chartH = 200;
+  const barPad = 8;
+  const maxVal = moneyEvents.length > 0
+    ? Math.max(...moneyEvents.map((e) => Math.max((e.door || 0) + (e.merch || 0), e.expenses || 0)), 1)
+    : 1;
+  const barGroupWidth = moneyEvents.length > 0
+    ? Math.min(80, (chartW - 40) / moneyEvents.length)
+    : 80;
 
   return (
     <div className={styles.page}>
@@ -214,6 +248,114 @@ export function CalendarPage() {
             );
           })}
         </div>
+
+        {/* Earnings graph */}
+        {moneyEvents.length > 0 && (
+          <div className={styles.earningsSection}>
+            <h3 className={styles.earningsTitle}>Earnings</h3>
+            <div className={styles.earningsTotals}>
+              <span className={styles.earningsStat}>
+                <span className={styles.earningsDot} style={{ background: "#4caf50" }} />
+                Door: ${totalDoor}
+              </span>
+              <span className={styles.earningsStat}>
+                <span className={styles.earningsDot} style={{ background: "#ff9800" }} />
+                Merch: ${totalMerch}
+              </span>
+              <span className={styles.earningsStat}>
+                <span className={styles.earningsDot} style={{ background: "#f44336" }} />
+                Expenses: ${totalExpenses}
+              </span>
+              <span className={`${styles.earningsStat} ${styles.earningsNet}`}>
+                Net: <strong style={{ color: totalNet >= 0 ? "#4caf50" : "#f44336" }}>${totalNet}</strong>
+              </span>
+            </div>
+            <div className={styles.chartWrap}>
+              <svg viewBox={`0 0 ${chartW} ${chartH + 30}`} className={styles.chart}>
+                {/* Grid lines */}
+                {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
+                  const y = chartH - frac * chartH;
+                  return (
+                    <g key={frac}>
+                      <line x1={30} y1={y} x2={chartW} y2={y} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />
+                      <text x={26} y={y + 4} textAnchor="end" fill="rgba(255,255,255,0.4)" fontSize={9}>
+                        ${Math.round(maxVal * frac)}
+                      </text>
+                    </g>
+                  );
+                })}
+                {/* Bars */}
+                {moneyEvents.map((ev, i) => {
+                  const x = 35 + i * barGroupWidth;
+                  const doorH = ((ev.door || 0) / maxVal) * chartH;
+                  const merchH = ((ev.merch || 0) / maxVal) * chartH;
+                  const expH = ((ev.expenses || 0) / maxVal) * chartH;
+                  const halfBar = (barGroupWidth - barPad * 2) / 2;
+                  return (
+                    <g key={ev.id}>
+                      {/* Door (bottom of income stack) */}
+                      <rect
+                        x={x + barPad}
+                        y={chartH - doorH - merchH}
+                        width={halfBar}
+                        height={doorH}
+                        fill="#4caf50"
+                        rx={2}
+                      />
+                      {/* Merch (top of income stack) */}
+                      <rect
+                        x={x + barPad}
+                        y={chartH - doorH - merchH}
+                        width={halfBar}
+                        height={merchH}
+                        fill="#ff9800"
+                        rx={2}
+                      />
+                      {/* Door below merch - re-draw door at bottom */}
+                      <rect
+                        x={x + barPad}
+                        y={chartH - doorH}
+                        width={halfBar}
+                        height={doorH}
+                        fill="#4caf50"
+                        rx={2}
+                      />
+                      {/* Expenses bar */}
+                      <rect
+                        x={x + barPad + halfBar + 2}
+                        y={chartH - expH}
+                        width={halfBar}
+                        height={expH}
+                        fill="#f44336"
+                        opacity={0.8}
+                        rx={2}
+                      />
+                      {/* Label */}
+                      <text
+                        x={x + barGroupWidth / 2}
+                        y={chartH + 14}
+                        textAnchor="middle"
+                        fill="rgba(255,255,255,0.5)"
+                        fontSize={9}
+                      >
+                        {new Date(ev.start).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                      </text>
+                      <text
+                        x={x + barGroupWidth / 2}
+                        y={chartH + 26}
+                        textAnchor="middle"
+                        fill="rgba(255,255,255,0.3)"
+                        fontSize={8}
+                      >
+                        {ev.title.length > 8 ? ev.title.slice(0, 7) + "..." : ev.title}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.sidebar}>
@@ -348,6 +490,47 @@ export function CalendarPage() {
                         </button>
                       ))}
                     </div>
+                    {/* CHA-CHING: income tracking for past events */}
+                    {ev.start.split("T")[0] <= today && (
+                      <div className={styles.chaChingSection}>
+                        <div className={styles.chaChingTitle}>CHA-CHING</div>
+                        <div className={styles.chaChingRow}>
+                          <label className={styles.chaChingLabel}>Door $</label>
+                          <input
+                            type="number"
+                            className={styles.chaChingInput}
+                            defaultValue={ev.door || 0}
+                            min={0}
+                            onBlur={(e) => handleUpdateMoney(ev.id, "door", Number(e.target.value))}
+                          />
+                        </div>
+                        <div className={styles.chaChingRow}>
+                          <label className={styles.chaChingLabel}>Merch $</label>
+                          <input
+                            type="number"
+                            className={styles.chaChingInput}
+                            defaultValue={ev.merch || 0}
+                            min={0}
+                            onBlur={(e) => handleUpdateMoney(ev.id, "merch", Number(e.target.value))}
+                          />
+                        </div>
+                        <div className={styles.chaChingRow}>
+                          <label className={styles.chaChingLabel}>Expenses $</label>
+                          <input
+                            type="number"
+                            className={styles.chaChingInput}
+                            defaultValue={ev.expenses || 0}
+                            min={0}
+                            onBlur={(e) => handleUpdateMoney(ev.id, "expenses", Number(e.target.value))}
+                          />
+                        </div>
+                        {((ev.door || 0) + (ev.merch || 0) - (ev.expenses || 0)) !== 0 && (
+                          <div className={styles.chaChingNet}>
+                            Net: ${(ev.door || 0) + (ev.merch || 0) - (ev.expenses || 0)}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {isCreator && (
                       <button
                         className={styles.deleteEventBtn}

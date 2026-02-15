@@ -350,6 +350,120 @@
   text-decoration: underline;
 }
 
+/* ===== CHA-CHING Section ===== */
+.chaChingSection {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.chaChingTitle {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #4caf50;
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+}
+
+.chaChingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: 6px;
+}
+
+.chaChingLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.chaChingInput {
+  width: 100px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: monospace;
+}
+
+.chaChingInput:focus {
+  outline: none;
+  border-color: #4caf50;
+}
+
+.chaChingNet {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: monospace;
+  color: var(--color-text);
+}
+
+/* ===== Earnings Graph ===== */
+.earningsSection {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.earningsTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+.earningsTotals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.earningsStat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+}
+
+.earningsDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.earningsNet {
+  margin-left: auto;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.chartWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chart {
+  width: 100%;
+  min-width: 300px;
+  height: auto;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .page {

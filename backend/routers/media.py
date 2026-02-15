@@ -5,7 +5,6 @@ from google.cloud.firestore import SERVER_TIMESTAMP
 from auth import get_current_user
 from models.schemas import MediaUpdate, UploadResponse
 from services.firestore import get_db
-from services.storage import upload_blob, generate_signed_url, delete_blob
 from services.audio import compute_peaks, get_duration
 
 router = APIRouter(prefix="/api/bands/{band_id}/media", tags=["media"])
@@ -32,6 +31,8 @@ async def upload_media(
     file: UploadFile = File(...),
     user: dict = Depends(get_current_user),
 ):
+    """Legacy upload endpoint. Primary upload flow is now client-side via Google Drive API.
+    This endpoint is kept for backwards compatibility / alternative upload paths."""
     db = get_db()
 
     # Verify band membership
@@ -44,16 +45,11 @@ async def upload_media(
     file_type = _classify_type(mime_type)
     file_id = uuid.uuid4().hex
 
-    # Upload to GCS
-    gcs_path = f"bands/{band_id}/media/{file_id}/{file.filename}"
-    upload_blob(content, gcs_path, mime_type)
-
-    # Build media document
+    # Build media document (no file storage — frontend handles Drive upload)
     media_data: dict = {
         "name": file.filename,
         "type": file_type,
         "mimeType": mime_type,
-        "gcsPath": gcs_path,
         "size": len(content),
         "tags": [],
         "uploadedBy": user["uid"],
@@ -126,8 +122,20 @@ async def get_audio_url(
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Media not found")
     data = doc.to_dict()
-    url = generate_signed_url(data["gcsPath"])
-    return {"url": url}
+
+    # New uploads use Google Drive
+    drive_file_id = data.get("driveFileId")
+    if drive_file_id:
+        return {
+            "driveFileId": drive_file_id,
+            "url": f"https://www.googleapis.com/drive/v3/files/{drive_file_id}?alt=media",
+        }
+
+    # Migration fallback: old uploads may have a downloadUrl
+    if data.get("downloadUrl"):
+        return {"url": data["downloadUrl"]}
+
+    raise HTTPException(status_code=404, detail="No file URL available")
 
 
 @router.patch("/{media_id}")
@@ -169,15 +177,8 @@ async def delete_media(
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Media not found")
 
-    data = doc.to_dict()
-
-    # Delete from GCS
-    try:
-        delete_blob(data["gcsPath"])
-    except Exception:
-        pass  # File might already be gone
-
-    # Delete Firestore doc
+    # Drive file deletion is handled by the frontend using the uploader's token.
+    # Backend only deletes the Firestore metadata doc.
     ref.delete()
 
     return {"ok": True}

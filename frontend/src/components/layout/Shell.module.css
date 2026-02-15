@@ -103,6 +103,18 @@
   max-width: 400px;
 }
 
+/* Duplicate instance warning */
+.duplicateBanner {
+  background: rgba(255, 68, 68, 0.15);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: 13px;
+  color: var(--color-error);
+  text-align: center;
+}
+
 /* Install banner */
 .installBanner {
   display: flex;

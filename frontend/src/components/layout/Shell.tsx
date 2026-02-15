@@ -43,9 +43,25 @@ export function Shell({
   const [installDismissed, setInstallDismissed] = useState(
     () => sessionStorage.getItem("install-dismissed") === "1"
   );
+  const [duplicateInstance, setDuplicateInstance] = useState(false);
   const { canInstall, isInstalled, isIOS, install } = useInstallPrompt();
   const location = useLocation();
   const prevPathRef = useRef(location.pathname);
+
+  // Detect duplicate instances (two browser tabs or two PWA windows)
+  useEffect(() => {
+    const channel = new BroadcastChannel("lms-bandhub-instance");
+    channel.postMessage("ping");
+    channel.onmessage = (e) => {
+      if (e.data === "ping") {
+        channel.postMessage("pong");
+        setDuplicateInstance(true);
+      } else if (e.data === "pong") {
+        setDuplicateInstance(true);
+      }
+    };
+    return () => channel.close();
+  }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -118,10 +134,16 @@ export function Shell({
           onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
         />
         <div className={styles.content}>
+          {/* Duplicate instance warning */}
+          {duplicateInstance && (
+            <div className={styles.duplicateBanner}>
+              another window is open — close it or things get weird
+            </div>
+          )}
           {/* Install banner */}
           {!isInstalled && !installDismissed && (canInstall || isIOS) && (
             <div className={styles.installBanner}>
-              <span>Install BandHub on your device for the best experience!</span>
+              <span>it works better on your phone</span>
               <div className={styles.installActions}>
                 {canInstall ? (
                   <button className="btn btn-primary" onClick={install}>

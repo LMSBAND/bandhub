@@ -71,9 +71,10 @@ export function useBand(userId: string | undefined) {
         setLoading(false);
 
         // Auto-select first band if none active
-        if (!activeBandId && result.length > 0) {
-          setActiveBandId(result[0].id);
-        }
+        setActiveBandId((prev) => {
+          if (!prev && result.length > 0) return result[0].id;
+          return prev;
+        });
       },
       (err) => {
         console.error("useBand onSnapshot error:", err);
@@ -82,7 +83,7 @@ export function useBand(userId: string | undefined) {
     );
 
     return unsub;
-  }, [userId, activeBandId]);
+  }, [userId]);
 
   const selectBand = useCallback((bandId: string) => {
     setActiveBandId(bandId);

@@ -5,11 +5,6 @@ import {
   connectFirestoreEmulator,
   type Firestore,
 } from "firebase/firestore";
-import {
-  getStorage,
-  connectStorageEmulator,
-  type FirebaseStorage,
-} from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -28,19 +23,16 @@ export const DEMO_MODE = !hasConfig;
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let db: Firestore | null = null;
-let storage: FirebaseStorage | null = null;
 
 if (hasConfig) {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
-  storage = getStorage(app);
 
   // Connect to emulators in development
   if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === "true") {
     connectAuthEmulator(auth, "http://localhost:9099");
     connectFirestoreEmulator(db, "localhost", 8080);
-    connectStorageEmulator(storage, "localhost", 9199);
   }
 } else {
   console.warn(
@@ -49,4 +41,4 @@ if (hasConfig) {
   );
 }
 
-export { auth, db, storage };
+export { auth, db };

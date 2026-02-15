@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .env
+.env.*
+!.env.example
 __pycache__/
 *.pyc
 .venv/
@@ -10,3 +12,22 @@ venv/
 .mypy_cache/
 .DS_Store
 Thumbs.db
+
+# Credentials / secrets
+*-service-account*.json
+*credentials*.json
+*.pem
+*.key
+*.p12
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

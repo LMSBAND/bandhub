@@ -151,6 +151,7 @@ export default function App() {
         <Route
           element={
             <Shell
+              key={activeBand?.id}
               user={user}
               bands={bands}
               activeBand={activeBand}

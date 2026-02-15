@@ -37,9 +37,7 @@ export function AddCommentModal({
         )}
         <textarea
           className={styles.textarea}
-          placeholder={hideTimestamp
-            ? "Leave a note for the band..."
-            : "What do you hear? Drop a note for the band..."}
+          placeholder="whats up?"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {

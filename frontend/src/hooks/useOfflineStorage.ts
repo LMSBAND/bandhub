@@ -116,10 +116,39 @@ export async function getOfflineUrl(mediaId: string): Promise<string | null> {
   return URL.createObjectURL(blob);
 }
 
+const AUTO_OFFLINE_KEY = "lms-auto-offline";
+const AUTO_OFFLINE_TYPES_KEY = "lms-auto-offline-types";
+const ALL_MEDIA_TYPES = ["audio", "video", "image", "pdf", "other"] as const;
+
+function loadOfflineTypes(): Set<string> {
+  const raw = localStorage.getItem(AUTO_OFFLINE_TYPES_KEY);
+  if (!raw) return new Set(ALL_MEDIA_TYPES);
+  try { return new Set(JSON.parse(raw)); } catch { return new Set(ALL_MEDIA_TYPES); }
+}
+
 /** Hook: manage offline storage for the current view */
 export function useOfflineStorage() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState<string | null>(null);
+  const [autoOffline, setAutoOfflineState] = useState<boolean>(
+    () => localStorage.getItem(AUTO_OFFLINE_KEY) === "1"
+  );
+
+  const [autoOfflineTypes, setAutoOfflineTypesState] = useState<Set<string>>(loadOfflineTypes);
+
+  const setAutoOffline = useCallback((enabled: boolean) => {
+    setAutoOfflineState(enabled);
+    localStorage.setItem(AUTO_OFFLINE_KEY, enabled ? "1" : "0");
+  }, []);
+
+  const toggleOfflineType = useCallback((type: string) => {
+    setAutoOfflineTypesState((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type); else next.add(type);
+      localStorage.setItem(AUTO_OFFLINE_TYPES_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
 
   // Load all saved media IDs from IndexedDB on mount
   useEffect(() => {
@@ -144,26 +173,27 @@ export function useOfflineStorage() {
   const saveOffline = useCallback(
     async (
       mediaId: string,
-      url: string,
+      urlOrBlob: string | Blob,
       meta: { bandId: string; name: string; type: string; size: number }
     ) => {
       setSaving(mediaId);
       try {
-        // Fetch the file
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error("Failed to fetch media");
-        const blob = await resp.blob();
+        let blob: Blob;
+        if (urlOrBlob instanceof Blob) {
+          blob = urlOrBlob;
+        } else {
+          const resp = await fetch(urlOrBlob);
+          if (!resp.ok) throw new Error("Failed to fetch media");
+          blob = await resp.blob();
+        }
 
-        // Store blob in IndexedDB (reliable, persists across sessions)
         await saveBlob(mediaId, blob);
-
-        // Store metadata in IndexedDB
         await saveMeta({
           mediaId,
           bandId: meta.bandId,
           name: meta.name,
           type: meta.type,
-          size: meta.size,
+          size: meta.size || blob.size,
           savedAt: Date.now(),
         });
 
@@ -185,5 +215,5 @@ export function useOfflineStorage() {
     });
   }, []);
 
-  return { isSaved, saveOffline, removeOffline, saving, savedIds };
+  return { isSaved, saveOffline, removeOffline, saving, savedIds, autoOffline, setAutoOffline, autoOfflineTypes, toggleOfflineType };
 }
