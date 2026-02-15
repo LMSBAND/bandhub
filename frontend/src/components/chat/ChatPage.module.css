@@ -1,0 +1,322 @@
+.page {
+  display: flex;
+  height: 100%;
+  gap: 0;
+  margin: calc(-1 * var(--space-lg));
+}
+
+/* Channel sidebar */
+.channelList {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.channelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.channelHeader h3 {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.addBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.addBtn:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.newChannel {
+  padding: var(--space-sm);
+}
+
+.channelInput {
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.channelItem {
+  display: flex;
+  align-items: center;
+  padding: var(--space-xs) var(--space-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  gap: var(--space-xs);
+}
+
+.channelItem:hover {
+  background: var(--color-surface-hover);
+}
+
+.channelActive {
+  background: var(--color-accent-dim);
+}
+
+.channelActive:hover {
+  background: var(--color-accent-dim);
+}
+
+.hash {
+  color: var(--color-text-muted);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.channelName {
+  flex: 1;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deleteChannelBtn {
+  opacity: 0;
+  font-size: 11px;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: all var(--transition-fast);
+}
+
+.channelItem:hover .deleteChannelBtn {
+  opacity: 1;
+}
+
+.deleteChannelBtn:hover {
+  color: var(--color-error);
+  background: rgba(255, 68, 68, 0.15);
+}
+
+.noChannels {
+  padding: var(--space-md);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* Chat area */
+.chatArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chatHeader {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.chatTitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.messageList {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md) var(--space-lg);
+}
+
+.emptyChat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.dateDivider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: var(--space-lg) 0 var(--space-md);
+}
+
+.dateDivider::before,
+.dateDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.dateDivider span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.message {
+  padding: var(--space-xs) 0;
+}
+
+.message:hover {
+  background: var(--color-surface);
+  margin: 0 calc(-1 * var(--space-md));
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+}
+
+.msgHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.msgAuthor {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.msgTime {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.msgText {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+/* Input bar */
+.inputBar {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.messageInput {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 14px;
+  outline: none;
+}
+
+.messageInput:focus {
+  border-color: var(--color-accent);
+}
+
+/* Mobile channel picker - hidden on desktop */
+.mobileChannelBar {
+  display: none;
+}
+
+.mobileChannelDropdown {
+  display: none;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .page {
+    flex-direction: column;
+    margin: calc(-1 * var(--space-md));
+  }
+
+  .channelList {
+    display: none;
+  }
+
+  .mobileChannelBar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+
+  .mobileChannelBtn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .mobileChevron {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--color-text-muted);
+  }
+
+  .mobileChannelDropdown {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    max-height: 200px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .chatHeader {
+    display: none;
+  }
+
+  .messageList {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .inputBar {
+    padding: var(--space-sm) var(--space-md);
+  }
+}

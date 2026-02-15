@@ -11,6 +11,7 @@ interface CommentPanelProps {
   onDelete: (id: string) => void;
   onReply: (commentId: string, text: string) => void;
   currentUserId: string;
+  hideTimestamps?: boolean;
 }
 
 type Filter = "all" | "unresolved" | "mine";
@@ -23,6 +24,7 @@ export function CommentPanel({
   onDelete,
   onReply,
   currentUserId,
+  hideTimestamps,
 }: CommentPanelProps) {
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -34,11 +36,16 @@ export function CommentPanel({
     })
     .sort((a, b) => a.timestamp - b.timestamp);
 
+  const label = hideTimestamps ? "Notes" : "Comments";
+  const emptyHint = hideTimestamps
+    ? "No notes yet. Click 'Add Note' to leave one!"
+    : "No comments yet. Click the waveform to add one!";
+
   return (
     <div className={styles.panel}>
       <div className={styles.header}>
         <h3 className={styles.title}>
-          Comments ({comments.length})
+          {label} ({comments.length})
         </h3>
         <div className={styles.filters}>
           {(["all", "unresolved", "mine"] as Filter[]).map((f) => (
@@ -59,7 +66,7 @@ export function CommentPanel({
         {filtered.length === 0 ? (
           <div className={styles.empty}>
             {comments.length === 0
-              ? "No comments yet. Click the waveform to add one!"
+              ? emptyHint
               : "No comments match this filter."}
           </div>
         ) : (
@@ -73,6 +80,7 @@ export function CommentPanel({
               onDelete={() => onDelete(c.id)}
               onReply={(text) => onReply(c.id, text)}
               isOwner={c.authorUid === currentUserId}
+              hideTimestamp={hideTimestamps}
             />
           ))
         )}

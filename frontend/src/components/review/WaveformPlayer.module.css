@@ -7,7 +7,7 @@
 
 .waveform {
   padding: var(--space-md);
-  cursor: crosshair;
+  cursor: pointer;
 }
 
 .controls {
@@ -72,7 +72,30 @@
   border-radius: var(--radius-sm);
 }
 
+.commentBtn {
+  background: rgba(0, 255, 50, 0.15);
+  border-color: rgba(0, 255, 50, 0.4);
+  color: #00ff32;
+  font-weight: 600;
+}
+
+.commentBtn:hover {
+  background: rgba(0, 255, 50, 0.25);
+  border-color: rgba(0, 255, 50, 0.7);
+}
+
 .hint {
   font-size: 11px;
   color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+  .hint {
+    display: none;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
 }

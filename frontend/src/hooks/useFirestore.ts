@@ -24,7 +24,7 @@ export function useCollection<T extends DocumentData>({
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!enabled || !path) {
+    if (!enabled || !path || !db) {
       setData([]);
       setLoading(false);
       return;

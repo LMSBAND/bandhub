@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Band } from "../../hooks/useBand";
 import styles from "./Sidebar.module.css";
@@ -5,9 +6,14 @@ import styles from "./Sidebar.module.css";
 interface SidebarProps {
   bands: Band[];
   activeBand: Band | null;
+  currentUserId?: string;
   onSelectBand: (id: string) => void;
   onCreateBand: () => void;
   onJoinBand: () => void;
+  onApproveMember?: (bandId: string, uid: string) => void;
+  onRejectMember?: (bandId: string, uid: string) => void;
+  onKickMember?: (bandId: string, uid: string) => void;
+  onNavigate?: () => void;
 }
 
 const NAV_ITEMS = [
@@ -25,12 +31,38 @@ const ICONS: Record<string, string> = {
 export function Sidebar({
   bands,
   activeBand,
+  currentUserId,
   onSelectBand,
   onCreateBand,
   onJoinBand,
+  onApproveMember,
+  onRejectMember,
+  onKickMember,
+  onNavigate,
 }: SidebarProps) {
+  const [copied, setCopied] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const copyInviteCode = () => {
+    if (!activeBand?.inviteCode) return;
+    navigator.clipboard.writeText(activeBand.inviteCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const emailInvite = () => {
+    if (!activeBand) return;
+    const subject = encodeURIComponent(`Join ${activeBand.name} on LMS BandHub`);
+    const body = encodeURIComponent(
+      `You're invited to join "${activeBand.name}" on LMS BandHub!\n\n` +
+      `1. Go to https://lms-bandhub.web.app\n` +
+      `2. Sign in with Google\n` +
+      `3. Enter invite code: ${activeBand.inviteCode}\n\n` +
+      `See you there!`
+    );
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
+  };
 
   return (
     <aside className={styles.sidebar}>
@@ -55,6 +87,16 @@ export function Sidebar({
             Join
           </button>
         </div>
+        {activeBand?.inviteCode && (
+          <div className={styles.inviteRow}>
+            <button className={styles.inviteCode} onClick={copyInviteCode}>
+              {copied ? "Copied!" : `${activeBand.inviteCode}`}
+            </button>
+            <button className={styles.emailInviteBtn} onClick={emailInvite} title="Email invite">
+              Email
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
@@ -65,7 +107,7 @@ export function Sidebar({
             className={`${styles.navItem} ${
               location.pathname.startsWith(item.path) ? styles.active : ""
             }`}
-            onClick={() => navigate(item.path)}
+            onClick={() => { navigate(item.path); onNavigate?.(); }}
           >
             <span className={styles.navIcon}>{ICONS[item.icon]}</span>
             {item.label}
@@ -74,20 +116,71 @@ export function Sidebar({
       </nav>
 
       {/* Band members */}
-      {activeBand && (
-        <div className={styles.members}>
-          <h4 className={styles.membersTitle}>Members</h4>
-          {Object.entries(activeBand.members).map(([uid, member]) => (
-            <div key={uid} className={styles.member}>
-              <span className={styles.memberDot} />
-              <span>{member.displayName}</span>
-              {member.role === "admin" && (
-                <span className={styles.adminBadge}>admin</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {activeBand && (() => {
+        const isAdmin = currentUserId ? activeBand.members[currentUserId]?.role === "admin" : false;
+        const activeMembers = Object.entries(activeBand.members).filter(([, m]) => m.role !== "pending");
+        const pendingMembers = Object.entries(activeBand.members).filter(([, m]) => m.role === "pending");
+
+        return (
+          <div className={styles.members}>
+            <h4 className={styles.membersTitle}>Members</h4>
+            {activeMembers.map(([uid, member]) => (
+              <div key={uid} className={styles.member}>
+                <span className={styles.memberDot} />
+                <span className={styles.memberName}>{member.displayName}</span>
+                {member.role === "admin" && (
+                  <span className={styles.adminBadge}>admin</span>
+                )}
+                {isAdmin && uid !== currentUserId && member.role !== "admin" && (
+                  <button
+                    className={styles.kickBtn}
+                    onClick={() => onKickMember?.(activeBand.id, uid)}
+                    title="Remove from band"
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {pendingMembers.length > 0 && isAdmin && (
+              <>
+                <h4 className={`${styles.membersTitle} ${styles.pendingTitle}`}>
+                  Pending Approval ({pendingMembers.length})
+                </h4>
+                {pendingMembers.map(([uid, member]) => (
+                  <div key={uid} className={`${styles.member} ${styles.pendingMember}`}>
+                    <span className={styles.pendingDot} />
+                    <span className={styles.memberName}>{member.displayName}</span>
+                    <div className={styles.pendingActions}>
+                      <button
+                        className={styles.approveBtn}
+                        onClick={() => onApproveMember?.(activeBand.id, uid)}
+                        title="Approve"
+                      >
+                        Y
+                      </button>
+                      <button
+                        className={styles.rejectBtn}
+                        onClick={() => onRejectMember?.(activeBand.id, uid)}
+                        title="Reject"
+                      >
+                        N
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {pendingMembers.length > 0 && !isAdmin && (
+              <div className={styles.pendingNotice}>
+                Waiting for admin approval...
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </aside>
   );
 }

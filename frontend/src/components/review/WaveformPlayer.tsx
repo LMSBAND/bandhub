@@ -19,9 +19,10 @@ interface WaveformPlayerProps {
   peaks?: number[];
   duration?: number;
   comments: CommentMarkerData[];
-  onWaveformClick: (timestamp: number) => void;
+  onAddComment: (timestamp: number) => void;
   onCommentClick: (commentId: string) => void;
   activeCommentId?: string | null;
+  seekToTimestamp?: number | null;
 }
 
 export function WaveformPlayer({
@@ -29,9 +30,10 @@ export function WaveformPlayer({
   peaks,
   duration,
   comments,
-  onWaveformClick,
+  onAddComment,
   onCommentClick,
   activeCommentId,
+  seekToTimestamp,
 }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
@@ -69,11 +71,8 @@ export function WaveformPlayer({
     ws.on("timeupdate", (t) => setCurrentTime(t));
     ws.on("ready", () => setTotalDuration(ws.getDuration()));
 
-    // Click on waveform = add comment at that position
-    ws.on("click", (relativeX) => {
-      const clickTime = relativeX * ws.getDuration();
-      onWaveformClick(clickTime);
-    });
+    // Click on waveform = seek to that position (NOT comment)
+    // wavesurfer handles this natively, no extra handler needed
 
     // Click on region = highlight that comment
     regions.on("region-clicked", (region, e) => {
@@ -90,6 +89,16 @@ export function WaveformPlayer({
     };
   }, [audioUrl]);
 
+  // Seek when parent tells us to (comment clicked in panel)
+  useEffect(() => {
+    const ws = wavesurferRef.current;
+    if (seekToTimestamp == null || !ws) return;
+    const dur = ws.getDuration();
+    if (dur > 0) {
+      ws.seekTo(Math.min(Math.max(seekToTimestamp / dur, 0), 1));
+    }
+  }, [seekToTimestamp]);
+
   // Update regions when comments change
   useEffect(() => {
     const regions = regionsRef.current;
@@ -105,10 +114,10 @@ export function WaveformPlayer({
         start: c.timestamp,
         end: c.timestamp + 0.5,
         color: c.resolved
-          ? "var(--color-comment-resolved)"
+          ? "rgba(100, 100, 100, 0.4)"
           : c.id === activeCommentId
-          ? "rgba(108, 99, 255, 0.7)"
-          : "var(--color-comment-marker)",
+          ? "rgba(0, 255, 100, 0.9)"
+          : "rgba(0, 255, 50, 0.6)",
         drag: false,
         resize: false,
       });
@@ -134,6 +143,10 @@ export function WaveformPlayer({
     [playbackRate]
   );
 
+  const handleCommentAtMarker = useCallback(() => {
+    onAddComment(wavesurferRef.current?.getCurrentTime() ?? 0);
+  }, [onAddComment]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -153,7 +166,7 @@ export function WaveformPlayer({
           break;
         case "c":
         case "C":
-          onWaveformClick(wavesurferRef.current?.getCurrentTime() ?? 0);
+          handleCommentAtMarker();
           break;
         case ";":
           changeSpeed(-0.1);
@@ -166,7 +179,7 @@ export function WaveformPlayer({
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [togglePlay, skip, changeSpeed, onWaveformClick]);
+  }, [togglePlay, skip, changeSpeed, handleCommentAtMarker]);
 
   return (
     <div className={styles.player}>
@@ -184,6 +197,13 @@ export function WaveformPlayer({
           </button>
           <button className={styles.controlBtn} onClick={() => skip(5)}>
             +5s
+          </button>
+          <button
+            className={`${styles.controlBtn} ${styles.commentBtn}`}
+            onClick={handleCommentAtMarker}
+            title="Add comment at current position"
+          >
+            Comment
           </button>
         </div>
         <div className={styles.time}>

@@ -5,10 +5,10 @@ import {
   where,
   onSnapshot,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db, DEMO_MODE } from "../firebase";
 
 export interface BandMember {
-  role: "admin" | "member";
+  role: "admin" | "member" | "pending";
   displayName: string;
   joinedAt: Date;
 }
@@ -23,39 +23,63 @@ export interface Band {
 
 const BAND_STORAGE_KEY = "lms-bandhub-active-band";
 
+// Demo band for offline preview
+const DEMO_BAND: Band = {
+  id: "demo-band",
+  name: "LMS",
+  createdBy: "demo-user",
+  inviteCode: "DEMO42",
+  members: {
+    "demo-user": {
+      role: "admin",
+      displayName: "Demo User",
+      joinedAt: new Date(),
+    },
+  },
+};
+
 export function useBand(userId: string | undefined) {
-  const [bands, setBands] = useState<Band[]>([]);
+  const [bands, setBands] = useState<Band[]>(DEMO_MODE ? [DEMO_BAND] : []);
   const [activeBandId, setActiveBandId] = useState<string | null>(
-    () => localStorage.getItem(BAND_STORAGE_KEY)
+    () => DEMO_MODE ? "demo-band" : localStorage.getItem(BAND_STORAGE_KEY)
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!DEMO_MODE);
 
   // Listen to all bands the user is a member of
   useEffect(() => {
-    if (!userId) {
-      setBands([]);
-      setLoading(false);
+    if (DEMO_MODE || !db || !userId) {
+      if (!userId) {
+        setBands(DEMO_MODE ? [DEMO_BAND] : []);
+        setLoading(false);
+      }
       return;
     }
 
     const q = query(
       collection(db, "bands"),
-      where(`members.${userId}.role`, "in", ["admin", "member"])
+      where(`members.${userId}.role`, "in", ["admin", "member", "pending"])
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      const result: Band[] = snap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })) as Band[];
-      setBands(result);
-      setLoading(false);
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const result: Band[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Band[];
+        setBands(result);
+        setLoading(false);
 
-      // Auto-select first band if none active
-      if (!activeBandId && result.length > 0) {
-        setActiveBandId(result[0].id);
+        // Auto-select first band if none active
+        if (!activeBandId && result.length > 0) {
+          setActiveBandId(result[0].id);
+        }
+      },
+      (err) => {
+        console.error("useBand onSnapshot error:", err);
+        setLoading(false);
       }
-    });
+    );
 
     return unsub;
   }, [userId, activeBandId]);

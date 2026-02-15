@@ -2,6 +2,15 @@
   display: flex;
   height: 100%;
   width: 100%;
+  position: relative;
+}
+
+.sidebarWrap {
+  flex-shrink: 0;
+}
+
+.sidebarBackdrop {
+  display: none;
 }
 
 .main {
@@ -15,4 +24,183 @@
   flex: 1;
   overflow-y: auto;
   padding: var(--space-lg);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  min-width: 360px;
+  max-width: 90vw;
+}
+
+.modal h3 {
+  margin: 0 0 var(--space-lg);
+  color: var(--color-text);
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+}
+
+.error {
+  color: var(--color-error, #ef4444);
+  font-size: 13px;
+  margin: var(--space-sm) 0 0;
+}
+
+.modalActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}
+
+/* Pending approval screen */
+.pendingScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-xl);
+  height: 50vh;
+  color: var(--color-text-secondary);
+}
+
+.pendingScreen h2 {
+  color: #ff9944;
+  margin-bottom: var(--space-md);
+}
+
+.pendingScreen p {
+  font-size: 15px;
+  line-height: 1.6;
+  margin: var(--space-xs) 0;
+  max-width: 400px;
+}
+
+/* Install banner */
+.installBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  background: var(--color-accent-dim);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.installActions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+/* Install help modal */
+.installSteps {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text);
+}
+
+.installSteps ol {
+  margin: var(--space-sm) 0 var(--space-md);
+  padding-left: var(--space-lg);
+}
+
+.installSteps li {
+  margin-bottom: var(--space-xs);
+}
+
+.installPlatform {
+  font-weight: 700;
+  color: var(--color-accent);
+  margin: var(--space-sm) 0 0;
+}
+
+.installNote {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .content {
+    padding: var(--space-md);
+  }
+
+  .sidebarWrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    background: var(--color-surface);
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  .sidebarBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .backdropVisible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal {
+    min-width: unset;
+    width: 92vw;
+    padding: var(--space-lg);
+  }
+
+  .installBanner {
+    flex-direction: column;
+    text-align: center;
+    font-size: 13px;
+  }
 }

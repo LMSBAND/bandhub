@@ -1,10 +1,18 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { orderBy } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  serverTimestamp,
+  orderBy,
+} from "firebase/firestore";
+import { db } from "../../firebase";
 import { useCollection } from "../../hooks/useFirestore";
 import { useAuth } from "../../hooks/useAuth";
 import { useBand } from "../../hooks/useBand";
-import { uploadMedia } from "../../utils/storage";
+import { useOfflineStorage } from "../../hooks/useOfflineStorage";
+import { uploadFile, computePeaks, getMediaType } from "../../utils/storage";
 import { MediaCard } from "./MediaCard";
 import { UploadModal } from "./UploadModal";
 import styles from "./LibraryPage.module.css";
@@ -25,13 +33,14 @@ interface MediaItem {
 const TYPE_FILTERS = ["all", "audio", "video", "image", "pdf", "other"];
 
 export function LibraryPage() {
-  const { user, getToken } = useAuth();
+  const { user } = useAuth();
   const { activeBand } = useBand(user?.uid);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showUpload, setShowUpload] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const navigate = useNavigate();
+  const { isSaved } = useOfflineStorage();
 
   const { data: media, loading } = useCollection<MediaItem>({
     path: activeBand ? `bands/${activeBand.id}/media` : "",
@@ -48,22 +57,68 @@ export function LibraryPage() {
 
   const handleUpload = useCallback(
     async (files: File[]) => {
-      if (!activeBand) return;
+      if (!activeBand || !user || !db) return;
+
       for (const file of files) {
-        setUploadProgress(0);
-        const token = await getToken();
-        await uploadMedia(activeBand.id, file, token, setUploadProgress);
+        try {
+          setUploadProgress(0);
+
+          // Create Firestore doc ref to get the ID
+          const mediaRef = doc(collection(db, `bands/${activeBand.id}/media`));
+          const mediaId = mediaRef.id;
+          const mediaType = getMediaType(file.type);
+
+          // Upload to Firebase Storage
+          const downloadUrl = await uploadFile(
+            activeBand.id,
+            mediaId,
+            file,
+            (pct) => setUploadProgress(pct * 0.8) // 80% for upload
+          );
+
+          // Compute peaks for audio files
+          let peaks: number[] | undefined;
+          let duration: number | undefined;
+          if (mediaType === "audio") {
+            setUploadProgress(85);
+            const peakData = await computePeaks(file);
+            peaks = peakData.peaks;
+            duration = peakData.duration;
+          }
+
+          setUploadProgress(95);
+
+          // Write metadata to Firestore
+          await setDoc(mediaRef, {
+            name: file.name,
+            type: mediaType,
+            mimeType: file.type,
+            gcsPath: `bands/${activeBand.id}/media/${mediaId}/${file.name}`,
+            downloadUrl,
+            size: file.size,
+            ...(duration !== undefined && { duration }),
+            ...(peaks && { peaks }),
+            tags: [],
+            uploadedBy: user.uid,
+            uploadedAt: serverTimestamp(),
+            commentCount: 0,
+          });
+
+          setUploadProgress(100);
+        } catch (err) {
+          console.error("Upload failed:", err);
+          alert(`Upload failed for ${file.name}: ${(err as Error).message}`);
+        }
       }
+
       setUploadProgress(null);
       setShowUpload(false);
     },
-    [activeBand, getToken]
+    [activeBand, user]
   );
 
   const handleMediaClick = (item: MediaItem) => {
-    if (item.type === "audio" || item.type === "video") {
-      navigate(`/library/${item.id}/review`);
-    }
+    navigate(`/library/${item.id}/review`);
   };
 
   if (!activeBand) {
@@ -118,6 +173,8 @@ export function LibraryPage() {
               key={item.id}
               item={item}
               onClick={() => handleMediaClick(item)}
+              isOffline={isSaved(item.id)}
+              uploaderName={item.uploadedBy && activeBand?.members[item.uploadedBy]?.displayName}
             />
           ))}
         </div>

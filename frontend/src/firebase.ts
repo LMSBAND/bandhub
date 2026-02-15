@@ -1,9 +1,15 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { initializeApp, type FirebaseApp } from "firebase/app";
+import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
 import {
   getFirestore,
   connectFirestoreEmulator,
+  type Firestore,
 } from "firebase/firestore";
+import {
+  getStorage,
+  connectStorageEmulator,
+  type FirebaseStorage,
+} from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -14,13 +20,33 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
+// Check if we have real Firebase config
+const hasConfig = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("placeholder");
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const DEMO_MODE = !hasConfig;
 
-// Connect to emulators in development
-if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === "true") {
-  connectAuthEmulator(auth, "http://localhost:9099");
-  connectFirestoreEmulator(db, "localhost", 8080);
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
+
+if (hasConfig) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+
+  // Connect to emulators in development
+  if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === "true") {
+    connectAuthEmulator(auth, "http://localhost:9099");
+    connectFirestoreEmulator(db, "localhost", 8080);
+    connectStorageEmulator(storage, "localhost", 9199);
+  }
+} else {
+  console.warn(
+    "Firebase config not found - running in demo mode. " +
+    "Set real values in frontend/.env to enable auth and data."
+  );
 }
+
+export { auth, db, storage };

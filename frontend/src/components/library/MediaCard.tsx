@@ -9,11 +9,14 @@ interface MediaItem {
   duration?: number;
   tags: string[];
   commentCount: number;
+  uploadedBy?: string;
 }
 
 interface MediaCardProps {
   item: MediaItem;
   onClick: () => void;
+  isOffline?: boolean;
+  uploaderName?: string;
 }
 
 const TYPE_ICONS: Record<string, string> = {
@@ -30,15 +33,17 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function MediaCard({ item, onClick }: MediaCardProps) {
+export function MediaCard({ item, onClick, isOffline, uploaderName }: MediaCardProps) {
   return (
     <div className={styles.card} onClick={onClick}>
       <div className={styles.icon}>{TYPE_ICONS[item.type] ?? TYPE_ICONS.other}</div>
       <div className={styles.info}>
         <div className={styles.name} title={item.name}>
           {item.name}
+          {isOffline && <span className={styles.offlineBadge} title="Saved offline">offline</span>}
         </div>
         <div className={styles.meta}>
+          {uploaderName && <span className={styles.uploader}>{uploaderName}</span>}
           <span>{formatSize(item.size)}</span>
           {item.duration != null && <span>{fmtTime(item.duration)}</span>}
           {item.commentCount > 0 && (

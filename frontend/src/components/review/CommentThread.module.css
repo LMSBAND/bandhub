@@ -115,5 +115,5 @@
 .replyInput {
   flex: 1;
   padding: var(--space-xs) var(--space-sm);
-  font-size: 13px;
+  font-size: 16px;
 }

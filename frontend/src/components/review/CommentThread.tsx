@@ -19,6 +19,7 @@ interface CommentThreadProps {
   onDelete: () => void;
   onReply: (text: string) => void;
   isOwner: boolean;
+  hideTimestamp?: boolean;
 }
 
 export function CommentThread({
@@ -29,6 +30,7 @@ export function CommentThread({
   onDelete,
   onReply,
   isOwner,
+  hideTimestamp,
 }: CommentThreadProps) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -48,7 +50,9 @@ export function CommentThread({
       onClick={onClick}
     >
       <div className={styles.header}>
-        <span className={styles.timestamp}>{fmtTime(comment.timestamp)}</span>
+        {!hideTimestamp && (
+          <span className={styles.timestamp}>{fmtTime(comment.timestamp)}</span>
+        )}
         <span className={styles.author}>{comment.author}</span>
         {comment.resolved && <span className={styles.badge}>resolved</span>}
       </div>
